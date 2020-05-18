@@ -1,0 +1,53 @@
+/*
+In fenwick tree bit[i] contains sum from g(i)+1 to i where g(i) is the last toggled bit of i so if i is a power of two then it contains 
+prefix sum upto i, also if in i last set bit is at jth position then (i + jump) where jump = 2^(j-1) will give sum from i to i+jump.
+See the beautiful implementation of it in get_pos(x) function which returns xth smallest element 
+Link to question : https://codeforces.com/contest/1354/problem/D
+*/
+
+#include <bits/stdc++.h>
+using namespace std;
+const int maxn = (1<<20); // maxn is special as bit[maxn] gives prefix[maxn]
+vector<int> bit(maxn+1); 
+void add(int idx,int val){
+    for(;idx<=maxn;idx += (idx)&(-idx))
+        bit[idx] += val;
+}
+int get_pos(int order){
+    int pos = 0;
+    for(int jump = maxn/2;jump>=1;jump/=2){
+        // if I am at jump j(=2^s) then any bit less than s is inactive in pos so toggling the last bit in pos
+        // will lead us to pos itself hence bit[pos+jump] contains prefix[pos+jump] - pre[pos] i.e, sum of all elements in this range
+        if(bit[pos+jump] < order)  
+        {
+            // bit[pos+jump] < order is used because if bit[pos+jump] becomes equal to order than pos+jump may become greater than required position 
+            order -= bit[pos+jump];
+            pos += jump;
+        }
+    }
+    return pos+1;
+}
+
+int main() {
+  cin.tie(0);
+	ios_base::sync_with_stdio(false);
+	int n,q,k;
+	cin>>n>>q;
+	for(int i = 0;i<n;++i){
+	    cin>>k;
+	    add(k,1);
+	}
+	int cnt = n;
+	while(q--){
+	    cin>>k;
+	    if(k>0) add(k,1), cnt++;
+	    else{
+	        int pos = get_pos(-k);
+	        add(pos,-1);
+	        cnt--;
+	    }
+	}
+	if(!cnt) cout<<"0\n";
+	else cout<<get_pos(1)<<'\n';
+	return 0;
+}
