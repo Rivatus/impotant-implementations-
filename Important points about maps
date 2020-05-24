@@ -1,0 +1,7 @@
+unordered_map is nearly 4 times faster than map (same for set)
+unordered_map<int,int>mp;
+mp.reserve(1024);
+mp.max_load_factor(0.25);
+
+These lines can increase performance furher.
+We can replace 1024 with another suitable power of two.(it depends on number of inserts you will do)
