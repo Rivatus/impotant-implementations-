@@ -1,0 +1,59 @@
+#include "bits/stdc++.h"
+using namespace std;
+
+int n,st=0,q,i,j;
+vector<int> a[1000010];
+vector<int> nxt(1000010);
+
+struct node
+{
+    int lc=0,rc=0,val=0;
+}nodes[10000000];
+
+int update(int id,int val,int l,int r){
+	int new_id = ++st;
+	nodes[new_id] = nodes[id];
+	if( l == r ){
+		nodes[new_id].val++; 
+		return new_id;
+	}
+	int mid = (l+r)/2;
+	nodes[new_id].lc = nodes[id].lc; nodes[new_id].rc = nodes[id].rc;
+	if(val <= mid )   nodes[new_id].lc = update(nodes[id].lc,val,l,mid);
+	else nodes[new_id].rc = update(nodes[id].rc,val,mid+1,r);
+	nodes[new_id].val++;
+	return new_id;
+}
+
+int getd(int id,int l,int r,int L,int R){
+	if(r<L || l>R) return 0;
+	else if(L>=l && R<=r) return nodes[id].val;
+	int mid = (L+R)/2;
+	return (getd(nodes[id].lc,l,r,L,mid) + getd(nodes[id].rc,l,r,mid+1,R));
+}
+
+int main() {
+    cin >> n; 
+    for(int i=0;i<n;++i){
+    	int x;
+    	cin >> x ;
+    	a[x].push_back(i);
+    }
+    for(int i=1;i<1000010;++i){
+    	for(int j=0;j<(int)a[i].size();++j){
+    		nxt[a[i][j]] = (j+1 != a[i].size()) ? a[i][j+1] : (n+1) ;  
+     	}
+    }
+    vector<int> root(n);
+    for(int i=0;i<n;++i){ 
+    	if(i) root[i] = update(root[i-1],nxt[i],0,n+1);    // nxt[i] stores index of nxt occurence of element at i i.e, a[i]. 
+    	else root[0] = update(0,nxt[0],0,n+1);
+    }
+    cin >> q;
+    while(q--){
+    	cin >> i >> j; --i;--j;
+    	int ans = getd(root[j],j+1,n+1,0,n+1) - (i ? getd(root[i-1],j+1,n+1,0,n+1) : 0);  // Ans is equal to number of values in [l..r] in nxt array whose value is greater than r.
+    	cout<<ans<<'\n';
+    }
+    return 0;
+}
