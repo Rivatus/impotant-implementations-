@@ -1,0 +1,31 @@
+/*
+This program calculates the sum of all subsets of x  i.e, F(x) = Σ A(i) for all i such that x&i = i. where A is an array of size 2^n.
+
+S(mask,i) : Set of all x such that x is a subset of mask and differs only in first i bits(zero based)
+
+Reccurance => S(mask,i) = S(mask,i-1) ,if ith bit of mask is off
+                          S(mask,i-1) union S(mask^(1<<i),i-1) if  ith bit is on
+                          
+Link to code and Explanation : https://codeforces.com/blog/entry/45223?f0a28=1                       
+*/
+                      
+for(int mask = 0; mask < (1<<N); ++mask){
+	dp[mask][-1] = A[mask];	//handle base case separately (leaf states)
+	for(int i = 0;i < N; ++i){
+		if(mask & (1<<i))
+			dp[mask][i] = dp[mask][i-1] + dp[mask^(1<<i)][i-1];
+		else
+			dp[mask][i] = dp[mask][i-1];
+	}
+	F[mask] = dp[mask][N-1];
+}
+
+//memory optimized, super easy to code.
+for(int i = 0; i<(1<<N); ++i)
+	F[i] = A[i];
+for(int i = 0;i < N; ++i) 
+    for(int mask = 0; mask < (1<<N); ++mask){
+	      if(mask & (1<<i))
+		       F[mask] += F[mask^(1<<i)];
+}
+
