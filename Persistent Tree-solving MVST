@@ -1,0 +1,326 @@
+// Problem Link : https://www.codechef.com/SEPT20A/problems/MVCN2TST
+
+#include<bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define mp make_pair
+#define F first
+#define S second
+typedef long long ll;
+typedef pair<int, int> pii;
+#define sz(x) (int)(x).size()
+#define all(x) x.begin(), x.end()
+#define itn int
+ 
+ll powmod(ll a,ll b) {ll res=1; assert(b>=0); for(;b;b>>=1){if(b&1)res=res*a;a=a*a;}return res;}
+ll gcd(ll a,ll b) { return b?gcd(b,a%b):a;}
+const int mod = 1000000007;
+int n,q,idx=0;
+vector<vector<int>> g,u;
+vector<int> h,order,oi;
+vector<ll> sts;
+struct node
+{
+	int lc,rc;
+	int cnt = 0;	
+}p[30000000];
+int base[210000];
+
+void bfs(){
+    priority_queue<pair<pii,int>> q; q.push({{0,0},-1});
+    int c=0;
+    while(!q.empty()){
+        pair<pii,int> t = q.top(); q.pop();
+        for(auto x: g[-t.F.S]){
+            if(x == t.S) continue;
+            q.push({{t.F.F-1,-x},-t.F.S}); 
+        }
+        order.pb(-t.F.S); 
+    }
+}
+
+void merge(int v,int u,int l,int r)
+{
+	if( l == r )
+	{
+		p[v].cnt += p[u].cnt;
+		return ;
+	} 
+	int mid = (l+r)>>1;  
+	p[v].cnt += p[u].cnt; 
+
+	if(p[p[u].lc].cnt)
+	{
+		p[++idx] = p[p[v].lc];
+		p[v].lc = idx;
+		merge(p[v].lc,p[u].lc,l,mid);
+	}
+	if(p[p[u].rc].cnt)
+	{
+		p[++idx] = p[p[v].rc];
+		p[v].rc = idx;
+		merge(p[v].rc,p[u].rc,mid+1,r);
+	}
+}
+
+void insert(int v,int val,int l,int r)
+{
+	p[v].cnt++;
+	if(l==r)
+	{
+		return;
+	}
+	int mid = (l+r)>>1;
+	if(val<=mid){
+		int mn = p[v].lc;
+		p[p[v].lc = ++idx] = p[mn]; 
+		insert(p[v].lc,val,l,mid);
+	}
+	else{
+		int mn = p[v].rc;
+		p[p[v].rc = ++idx] = p[mn]; 
+		insert(p[v].rc,val,mid+1,r);
+	}
+}
+
+void build(int v=0,int l=0,int r=n-1){
+	if(l==r){
+		p[v].cnt = 0;
+		return ;
+	}
+	int mid = (l+r)>>1;
+	p[v].lc = ++idx;
+	p[v].rc = ++idx;
+	p[v].cnt = 0;
+	build(p[v].lc,l,mid);
+	build(p[v].rc,mid+1,r);
+}
+
+int dfs(int v,int p)
+{
+	int s=1,mxsz=0,cstr=-1;
+	for(int c : g[v])
+	{
+		if(c == p)
+			continue;
+		int sz = dfs(c,v);
+		if(sz>mxsz){
+			mxsz = sz; 
+			cstr = c;
+		}
+		s+=sz;
+	}
+	if(cstr!=-1) ::p[base[v]=++idx] = ::p[base[cstr]];
+	else ::p[base[v]=++idx] = ::p[0];
+	for(int c : g[v])
+	{
+		if(c==p || c==cstr) continue;
+		merge(base[v],base[c],0,n-1);
+	} 
+	insert(base[v],oi[v],0,n-1);
+	sts[v] = n-s;
+	return s;
+}
+
+void display(int v,int l=0,int r=n-1){
+	if(p[v].cnt==0) return;
+	if(l == r) {
+		cout << l << "          " << p[v].cnt << '\n';
+		return ;
+	}
+	int mid = (l+r)>>1;
+	display(p[v].lc,l,mid);
+	display(p[v].rc,mid+1,r);
+}
+
+int get(int v,int l,int r,int id){
+	if(l==r){
+		return order[l];
+	}
+	int mid = (l+r)>>1;
+	int rl = mid-l+1 , c = rl - p[p[v].lc].cnt;// cout<<l<<' '<<r<<' '<<p[v].cnt<<'\n';
+	if(id<=c){
+		return get(p[v].lc,l,mid,id);
+	}
+	else{
+		return get(p[v].rc,mid+1,r,id-c);
+	}
+}
+
+void del(int v,int s,int l,int r) {
+	p[v].cnt++;
+	if(l==r) return ;
+	int mid = (l+r)>>1;
+	if(s<=mid) {
+		p[++idx] = p[p[v].lc];
+		p[v].lc = idx;
+		del(p[v].lc,s,l,mid);
+	}
+	else {
+		p[++idx] = p[p[v].rc];
+		p[v].rc = idx;
+		del(p[v].rc,s,mid+1,r);
+	}
+}
+
+ll segtree[1000000],lazy[1000000];
+
+void builds(vector<ll> &x, int v,int l,int r) {
+	if(l==r){
+		segtree[v] = x[l-1];
+		lazy[v] = 0;
+		return ;
+	}
+	int mid = (l+r)>>1;
+	builds(x,v<<1,l,mid);
+	builds(x,(v<<1)|1,mid+1,r);
+	segtree[v] = segtree[v<<1] + segtree[(v<<1)|1];
+	lazy[v] = 0;
+}
+
+/*void update(int v,int l,int r,int st,int en,int x) {
+	if(lazy[v]) {
+		segtree[v] += (r-l+1)*lazy[v];
+		if(l!=r) {
+			lazy[v<<1] += lazy[v];
+			lazy[(v<<1)|1] += lazy[v];
+		}
+		lazy[v] = 0;
+	}
+	if(l>r || l>en || r<st) return;
+	int mid = (l+r)>>1;
+	if(l>=st && r<=en) {
+		segtree[v] += (r-l+1)*x;
+		if(l!=r) {
+			lazy[v<<1] += x;
+			lazy[(v<<1)|1] += x;
+		}
+		return ;
+	}
+
+	update(v<<1,l,mid,st,en,x);
+	update((v<<1)|1,mid+1,r,st,en,x);
+	segtree[v] = segtree[v<<1] + segtree[(v<<1)|1] + lazy[v<<1]*(mid-l+1) + lazy[(v<<1)|1]*(r-mid);
+}*/
+
+void update(int v,int l,int r,int st,int en,int x) {
+	if((l==st)&&(r==en))
+    {
+        lazy[v]+=x;
+        return;
+    }
+    int mid=(l+r)>>1;
+    if(st>mid)
+    {
+        update((v<<1)|1,mid+1,r,st,en,x);
+    }
+    else if(en<=mid)
+    {
+        update((v<<1),l,mid,st,en,x);
+    }
+    else
+    {
+        update((v<<1)|1,mid+1,r,mid+1,en,x);
+        update((v<<1),l,mid,st,mid,x);
+    }
+    segtree[v]=segtree[v<<1]+(lazy[v<<1]*(mid-l+1))+segtree[(v<<1)|1]+lazy[(v<<1)|1]*(r-mid);
+}
+
+/*int search(int v,int l,int r,ll x) {
+	if(lazy[v]) {
+		segtree[v] += (r-l+1)*lazy[v];
+		if(l!=r) {
+			lazy[v<<1] += lazy[v];
+			lazy[(v<<1)|1] += lazy[v];
+		}
+		lazy[v] = 0;
+	}
+	if(l==r) {
+		return r-1;
+	}
+	int mid = (l+r)>>1;
+	if(x <= segtree[v<<1]+lazy[v<<1]) {
+		return search(v<<1,l,mid,x);
+	} 
+	else { 
+		return search((v<<1)|1,mid+1,r,x); 
+	}
+}*/
+int search(int v,int l,int r,ll &x)
+{
+	if(l==r) 
+    {
+		return r-1;
+	}
+	int mid = (l+r)>>1;
+    segtree[v]+=((r-l+1)*lazy[v]);
+    lazy[v<<1]+=lazy[v];
+    lazy[(v<<1)|1]+=lazy[v];
+    lazy[v]=0;
+	if(x <= (segtree[v<<1]+(mid-l+1)*lazy[v<<1]) )
+    {
+		return search(v<<1,l,mid,x);
+	} 
+	else 
+    {
+        x-=(segtree[v<<1]+(mid-l+1)*lazy[v<<1]);
+		return search((v<<1)|1,mid+1,r,x); 
+	}
+}
+
+int main(){
+    ios_base::sync_with_stdio(false); cin.tie(NULL); 
+    #ifndef ONLINE_JUDGE
+	    freopen("input.txt","r",stdin);
+		freopen("output.txt","w",stdout);
+	#endif
+    int t;
+    cin>>t; 
+    while(t--){ 
+    	idx = 0;
+        cin >> n; 
+        sts.clear(); sts.resize(n); g.clear(); u.clear(); g.resize(n); u.resize(n); h.clear(); h.resize(n); order.clear(); oi.clear(); oi.resize(n);
+        for(int i=1;i<n;++i) 
+        {
+            int u,v;
+            cin >> u >> v; --u;--v;
+            g[u].pb(v); g[v].pb(u);  
+        }
+
+        bfs(); 
+        for(int i=0;i<n;++i) oi[order[i]] = i; 
+        build();
+    	dfs(0,-1);
+    	//vector<int> pre(n);
+    	//for(int i=1;i<n;++i) pre[i] += pre[i-1]+sts[i];
+    	builds(sts,1,1,n);
+    	cin >> q;
+
+    	ll e,d=0,p2=1,p3=1;
+    	while(q--) {
+    		cin >> e;
+    		e ^= d; p2 = (p2*2)%mod; p3 = (p3*3)%mod;
+    		ll x = e;
+    		int u = search(1,1,n,x);
+    		//int u = lower_bound(all(sts),e)-sts.begin(); 
+    		int id = x;//e - (u ? pre[u-1] : 0);
+    		int v = get(base[u],0,n-1,id); 
+    		//cout << u << ' ' << v << '\n';
+    		d = (d + p2*1ll*(u+1) + p3*1ll*(v+1))%mod;
+    		//for(int j = u;j<n;++j) sts[j]--;
+    		update(1,1,n,u+1,u+1,-1);
+    		del(base[u],oi[v],0,n-1);
+    	}
+    	cout << d << '\n';
+    }
+    return 0;
+}
+/*
+2 4
+4 1
+5 6
+3 2
+1 0
+910
+
+*/
