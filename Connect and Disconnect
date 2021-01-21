@@ -1,0 +1,155 @@
+// Question Link : https://codeforces.com/gym/100551/problem/A
+
+#include<bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define mp make_pair
+#define F first
+#define S second
+typedef long long ll;
+typedef pair<int, int> pii;
+#define sz(x) (int)(x).size()
+#define all(x) x.begin(), x.end()
+const int N = 300001, INF = 1e9;
+int rak[N], par[N], ans, tim = 1, n, k;
+
+int rep(int x) {
+    return par[x]==x?x:rep(par[x]);
+}
+
+struct cng{
+    int x,y,rnkx,rnky;
+    cng(int _x,int _y,int _rx,int _ry) : x(_x), y(_y), rnkx(_rx), rnky(_ry) {}
+};
+stack<cng> op;
+
+bool unite(int x,int y) {
+    x = rep(x);
+    y = rep(y);
+    if(x==y) return false;
+    if(rak[x] < rak[y]) swap(x,y);
+    cng temp(x,y,rak[x],rak[y]); op.push(temp);
+    par[y] = x;
+    rak[x] += rak[y];
+    --ans;
+    return true;
+}
+
+void rollback() {
+    assert(!op.empty());
+    cng now = op.top(); op.pop();
+    par[now.y] = now.y;
+    rak[now.y] = now.rnky;
+    rak[now.x] = now.rnkx;
+    ++ans;
+}
+
+struct in{
+  int u,v,st,et;
+  in(int _u,int _v,int _st,int _en) : u(_u), v(_v), st(_st), et(_en) {}
+};
+vector<in> interval;
+vector<int> q;
+
+struct Seg{
+    vector<pii> is;
+    vector<bool> was;
+    bool q;
+    Seg() : q(0) {}
+}node[4*N+10];
+
+void insert(int v,int l,int r,in x) {
+    int L = x.st, R = x.et;
+    if(R<l || L>r) return;
+    if(l==L && r==R) {
+        node[v].is.pb({x.u,x.v});
+        return ;
+    }
+    int mid = (l+r)/2;
+    in x1 = x; x1.et = min(mid,x.et);
+    insert(2*v, l, mid, x1);
+    x1.et = x.et; x1.st = max(x.st, mid+1);
+    insert(2*v+1, mid+1,r,x1);
+}
+
+void put_q(int v,int l,int r,int q_pt) {
+    if(l==r) {
+        node[v].q = 1;
+        return;
+    } 
+    int mid = (l+r)/2;
+    if(q_pt<=mid) put_q(2*v,l,mid,q_pt);
+    else put_q(2*v+1,mid+1,r,q_pt);
+}
+
+void mak_segtree() {
+    for(auto x : interval) {
+        //cout << x.u << ' ' << x.v << ' ' << x.st << ' ' << x.et << '\n';
+        insert(1,1,tim,x);
+    }
+    for(auto x: q) {
+        put_q(1,1,tim,x);
+    }
+}
+
+void dfs(int v,int l,int r) {
+    for(auto x: node[v].is) {
+        //cout << l <<' ' << r << ' ' << x.F << ' ' << x.S << '\n';
+        node[v].was.pb((unite(x.F, x.S)));
+    }
+    int mid = (l+r)/2;
+    if(l!=r) {
+        dfs(2*v,l,mid);
+        dfs(2*v+1,mid+1,r);
+    } else if(node[v].q){
+        cout << ans << '\n';
+    }
+    for(int i=(int)node[v].is.size()-1;i>=0;--i) {
+        if(node[v].was[i]) 
+            rollback();
+    }
+}
+
+pii f(int u,int v) {
+    return {min(u,v), max(u,v)};
+}
+
+int main(){
+    assert(freopen("connect.in", "r", stdin));
+  assert(freopen("connect.out", "w", stdout));
+    ios_base::sync_with_stdio(false); cin.tie(NULL); 
+    cin >> n >> k;
+    for(int i=0;i<N;++i) {
+        rak[i] = 1;
+        par[i] = i;
+    }
+    ans = n;
+    map<pii,int> pre;
+    while(k--) {
+        char ch;
+        cin >> ch;
+        if(ch=='+') {
+            int u,v;
+            cin >> u >> v;
+            pre[f(u,v)] = tim;
+        } else if(ch=='-') {
+            int u,v;
+            cin >> u >> v;
+            in temp(u,v,pre[f(u,v)], tim-1);
+            pre[f(u,v)] = 0;
+            interval.pb(temp);
+        } else {
+            q.pb(tim);
+        }
+        tim++;
+    }
+    for(auto it: pre) {
+        if(it.S) {
+            in temp(it.F.F,it.F.S, it.S, tim);
+            interval.pb(temp);
+        }
+    }
+    mak_segtree();
+    dfs(1,1,tim);
+    return 0;
+}
