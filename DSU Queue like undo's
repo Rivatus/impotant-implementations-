@@ -1,0 +1,190 @@
+// Study Material : https://codeforces.com/blog/entry/83467
+// Code taken from : https://codeforces.com/contest/1386/submission/95162717
+// Solution of this problem : https://codeforces.com/contest/1423/problem/H
+
+#include <bits/stdc++.h>
+using namespace std;
+#define F first
+#define S second
+typedef long long ll;
+typedef pair<int, int> pii;
+
+
+// used in the original data structure to represent a change in memory cell
+struct change {
+	int t, value;
+	int *cell;
+	change() {}
+	change(int _time, int _value, int *_cell) {
+		t = _time;
+		value = _value;
+		cell = _cell;
+	}
+	void undo() {
+		*cell = value;
+	}
+};
+
+struct dsu {
+	int n;
+	vector<int> p, r;
+	int nxtupd;
+	vector<change> stack;
+	dsu() {}
+	dsu(int sz) {
+		n = sz;
+		p.resize(n);
+		r.resize(n, 1);
+		nxtupd = 0;
+		for (int i = 0; i < n; i++) p[i] = i;
+	}
+	void upd(int *cell, int value) {
+		stack.push_back(change(nxtupd, *cell, cell));
+		*cell = value;
+	}
+	int find(int x) {
+		if (x == p[x]) return x;
+		return find(p[x]);
+	}
+	
+	void unite(int x, int y) {
+		nxtupd++;
+		x = find(x);
+		y = find(y);
+		
+		if (x == y) {
+		    upd(&p[0], p[0]);  // We want nothing to happen when this is undoed, so we just mark this update's existence.
+		    return;
+		}
+		if (r[x] < r[y]) {
+			upd(&p[x], y);
+			upd(&r[y], r[y] + r[x]);
+		}
+		else {
+			upd(&p[y], x);
+			upd(&r[x], r[x]+r[y]);
+		}
+		return;
+	}
+	void undo() {
+		if (!stack.size()) return;
+		int t = stack.back().t;
+		while (stack.size() && stack.back().t == t) {
+			stack.back().undo();
+			stack.pop_back();
+		}
+	}
+};
+
+struct update {
+	char type; // 'A' or 'B'
+	int x, y;
+	update() {}
+	update(int xx, int yy) {
+		x = xx;
+		y = yy;
+		type = 'B';
+	}
+};
+
+struct dsuqueue {
+	dsu D;
+	vector<update> S;
+	int bottom; // bottom of the stack: S[0..bottom-1] is entirely B's.
+	dsuqueue() {}
+	dsuqueue(int sz) {
+		D = dsu(sz);
+		bottom = 0;
+	}
+	// utility:
+	void advance_bottom() {
+		while (bottom < S.size() && S[bottom].type == 'B') bottom++;
+	}
+	void fix() {
+		if (!S.size() || S.back().type == 'A') return;
+		advance_bottom();
+		vector<update> saveB, saveA;
+		saveB.push_back(S.back());
+		S.pop_back(), D.undo();
+		while (saveA.size() != saveB.size() && S.size() > bottom) {
+			if (S.back().type == 'A')
+				saveA.push_back(S.back());
+			else
+				saveB.push_back(S.back());
+			S.pop_back(), D.undo();
+		}
+		// reverse saveA and saveB so their relative order is maintained
+		reverse(saveA.begin(), saveA.end());
+		reverse(saveB.begin(), saveB.end());
+		for (const update &u : saveB) {
+			S.push_back(u);
+			D.unite(u.x, u.y);
+		}
+		for (const update &u : saveA) {
+			S.push_back(u);
+			D.unite(u.x, u.y);
+		}
+		advance_bottom();
+	}
+	void reverse_updates() {
+		for (int i = 0; i < S.size(); i++)
+			D.undo();
+		for (int i = (int)S.size() - 1; i >= 0; i--) {
+			D.unite(S[i].x, S[i].y);
+			S[i].type = 'A';
+		}
+		reverse(S.begin(), S.end());
+		bottom = 0;
+	}
+	void undo() {
+		advance_bottom();
+		if (bottom == S.size()) {
+			// no more A's, let's reverse and begin again.
+			reverse_updates();
+		}
+		fix();
+		D.undo();
+		S.pop_back();
+	}
+
+	void unite(int x, int y) {
+		D.unite(x, y);
+		S.push_back(update(x, y));
+	}
+};
+
+
+
+int main() {
+	ios::sync_with_stdio(0), cin.tie(0);
+	int n,q,k;
+    cin >> n >> q >> k;
+    dsuqueue vt(n);
+    int day = 1;
+    queue<int> updts;
+    while(q--) {
+        int type;
+        cin >> type;
+        if(type == 1) {
+            int x,y;
+            cin >> x >> y;
+            --x;--y;
+            vt.unite(x,y);
+            updts.push(day);
+        }
+        else if(type == 2) {
+            int z;
+            cin >> z; --z;
+            int ans = vt.D.r[vt.D.find(z)];
+            cout << ans << '\n';
+        }
+        else {
+            day++;
+            int ld = day-k;
+            while(!updts.empty() && updts.front() == ld) {
+                vt.undo();
+                updts.pop();
+            }
+        }
+    }
+}
