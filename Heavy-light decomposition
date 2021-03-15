@@ -1,0 +1,152 @@
+// Question: https://codedrills.io/problems/queries-on-tree 
+
+#include<bits/stdc++.h>
+using namespace std;
+#define pb push_back
+typedef long long ll;
+
+vector<vector<int>> g;
+vector<int> val,parent,heavy,head,pos,depth,nval;
+int n,q,cnt=0;
+const ll X = (1LL<<31)-1;
+struct info{
+    ll sum=0;
+    bool flip=0;  // true if not propagated
+}node[1000000];
+
+void build(int v,int l,int r) {
+    node[v].flip=0;
+    if(l==r) {
+        node[v].sum = nval[l];
+        return;
+    }
+    int mid = l+(r-l)/2;
+    build(v<<1, l,mid);
+    build((v<<1)|1,mid+1,r);
+    node[v].sum = node[v<<1].sum + node[(v<<1)|1].sum;
+}
+
+void seg_tree_update(int v,int l,int r,int L,int R) {
+    int mid = l+(r-l)/2;
+    if(node[v].flip) {
+        node[v].flip=0;
+        if(l!=r) {
+            node[v<<1].flip ^= 1;
+            node[(v<<1)|1].flip ^=1;
+            node[v<<1].sum = (mid-l+1)*1ll*X - node[v<<1].sum;
+            node[(v<<1)|1].sum = (r-mid)*1ll*X - node[(v<<1)|1].sum;
+        }
+    }
+    if(l==L && r==R) {
+        node[v].flip^=1;
+        node[v].sum = (r-l+1)*1ll*X-node[v].sum;
+        return;
+    }
+    if(L<=mid) seg_tree_update(v<<1,l,mid,L,min(R,mid));
+    if(R>mid) seg_tree_update((v<<1)|1, mid+1,r,max(L,mid+1), R);
+    node[v].sum = node[v<<1].sum + node[(v<<1)|1].sum;
+}
+
+ll seg_tree_get(int v,int l,int r,int L,int R) {
+    int mid = l+(r-l)/2;
+    if(node[v].flip) {
+        node[v].flip=0;
+        if(l!=r) {
+            node[v<<1].flip ^= 1;
+            node[(v<<1)|1].flip ^=1;
+            node[v<<1].sum = (mid-l+1)*1ll*X - node[v<<1].sum;
+            node[(v<<1)|1].sum = (r-mid)*1ll*X - node[(v<<1)|1].sum;
+        }
+    }
+    if(l==L && r==R) {
+        return node[v].sum;
+    }
+    ll ans = 0;
+    if(L<=mid) ans += seg_tree_get(v<<1,l,mid,L,min(R,mid));
+    if(R>mid) ans += seg_tree_get((v<<1)|1, mid+1,r,max(L,mid+1), R);
+    return ans;
+}
+
+void update(int u,int v) {
+    while(head[u]-head[v]) {
+        if(depth[head[u]] > depth[head[v]]) swap(u,v);
+        seg_tree_update(1,0,n-1,pos[head[v]],pos[v]);
+        v = parent[head[v]];
+    }
+    if(depth[u] > depth[v]) swap(u,v);
+    seg_tree_update(1,0,n-1,pos[u],pos[v]);
+}
+
+ll get(int u,int v) {
+    ll ans = 0;
+    while(head[v]-head[u]) {
+        if(depth[head[u]] > depth[head[v]]) swap(u,v);
+        ans += seg_tree_get(1,0,n-1,pos[head[v]],pos[v]);
+        v = parent[head[v]];
+    }
+    if(depth[u] > depth[v]) swap(u,v);
+    ans += seg_tree_get(1,0,n-1,pos[u],pos[v]);
+    return ans;
+}
+
+int dfs(int v,int p,int h) {
+    parent[v] = p; depth[v] = h;
+    int c=1,max_c=0;   heavy[v] = -1;
+    for(auto u:g[v]) {
+        if(u!=p) {
+            int cs = dfs(u,v,h+1);
+            c+=cs;
+            if(cs>max_c) {
+                max_c=cs;
+                heavy[v] = u;
+            }
+        }
+    }
+    return c;
+}
+
+void decompose(int v,int rep) {
+    head[v] = rep; pos[v] = cnt++; nval[pos[v]] = val[v];
+    if(heavy[v] != -1) decompose(heavy[v], rep);
+    for(auto u: g[v]) {
+        if(u==parent[v] || u==heavy[v]) continue;
+        decompose(u,u);
+    }
+}
+
+void solve() {
+    cin >> n >> q;
+    val.resize(n); g.resize(n); nval.resize(n);
+    for(int i=1;i<n;++i) {
+        int u,v;
+        cin >> u >> v; --u; --v;
+        g[u].pb(v); g[v].pb(u);
+    }
+    for(int i=0;i<n;++i) cin >> val[i];
+    parent.resize(n); head.resize(n); heavy.resize(n); pos.resize(n); depth.resize(n);
+    dfs(0,0,0);
+    decompose(0,0);
+    build(1,0,n-1);
+    while(q--) {
+        int type,u,v;
+        cin >> type;
+        if(type == 1) {
+            cin >> u >> v; --u; --v;
+            update(u,v);
+        } else {
+            cin >> u >> v; --u; --v;
+            ll ans = get(u,v);
+            cout << ans << '\n';
+        }
+    }
+}
+
+
+int main(){
+    ios_base::sync_with_stdio(false); cin.tie(NULL); 
+    int t=1; 
+    while(t--){
+        solve();
+    }
+  return 0;
+}
