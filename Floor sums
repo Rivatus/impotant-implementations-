@@ -1,4 +1,4 @@
-f(a,b,c,n) = Σ ( (a*x + b)/c ) from x=1 to n in O(logn) where value is floor of the value.
+f(a,b,c,n) = Σ ( (a*x + b)/c ) from x=0 to n in O(logn) where value is floor of the value.
 
 
  long long FloorSumAP(long long a, long long b, long long c, long long n){
