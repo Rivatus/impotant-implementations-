@@ -1,4 +1,4 @@
-/ * Problem Statement: 
+/* Problem Statement: 
   There are n buildings and n − 1 undirected roads connecting the buildings such that the network of roads forms a tree.
   Outside every building there is a vehicle that you can rent. The cost of the vehicle at building i is ci per unit distance
   travelled, and additionally a base cost of ri to rent. So if you choose to rent the vehicle and travel d units distance, the
@@ -21,6 +21,8 @@ typedef pair<ftype,ftype> point;
 ftype f(point a,  ftype x) {
     return (a.F*x)+a.S;
 }
+// y = m*x + c kind of. 
+
 const long long maxn = 2e9,mn=1e7;
 struct node{
     int lc,rc;
@@ -31,6 +33,9 @@ struct node{
         p.S=1ll<<62;
     }
 };
+// p is the line where the mid of node is minimum.
+// lc and rc needs to be stored as this is sparse tree. 
+
 vector<node> nodes(mn);
 int stx;
 void add_line(point nw, int v, long long l = 0, long long r = maxn) {
@@ -40,10 +45,12 @@ void add_line(point nw, int v, long long l = 0, long long r = maxn) {
     if(mid)swap(nodes[v].p, nw);
     if(r==l)return;
     else if(lef != mid) {
+        // copy node before chaning to maintain persistence.  
         nodes[++stx]=nodes[nodes[v].lc];
         nodes[v].lc=stx;
         add_line(nw, stx, l, m);
     } else {
+        // copy node before chaning to maintain persistence.  
         nodes[++stx]=nodes[nodes[v].rc];
         nodes[v].rc=stx;
         add_line(nw, stx, m+1, r);
@@ -92,6 +99,7 @@ int32_t main()
             if(!visit[v.F]){
                 d[v.F]=d[u]+v.S;
                 ans[v.F]=get(d[v.F],b[u]);
+                // Create a copy of the parent node for child. 
                 nodes[b[v.F]=++stx]=nodes[b[u]];
                 q.push(v.F);
             }
