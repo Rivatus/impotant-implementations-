@@ -1,7 +1,7 @@
 // Solution of https://codeforces.com/contest/631/problem/E using convex hull trick(Lichao tree)
 // Material : https://robert1003.github.io/2020/02/06/li-chao-segment-tree.html
 // Important : Here range l,r denotes [l,r). With this a bug is avoided which is if we take [l,r] then when both l and r are negative the update [l,mid] can result in infinite 
-//             recursion. E.g: l = -7, r = -6. mid = (l+r)/2 = -6 so [l,mid] = [-7,-6], resulting in infinite recursion.
+//             recursion. E.g: l = -7, r = -6. mid = (l+r)/2 = -6 (implementation in c++) so [l,mid] = [-7,-6], resulting in infinite recursion.
 
 #include<bits/stdc++.h>
 using namespace std;
